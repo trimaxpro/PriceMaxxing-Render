@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: pricemax-scraper
+    env: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 3000
+    numInstances: 1
+    plan: free
