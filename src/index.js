@@ -4,6 +4,8 @@ import puppeteer from 'puppeteer';
 const app = express();
 app.use(express.json({ limit: '1mb' }));
 
+const RAILWAY_API = process.env.RAILWAY_API_URL || 'https://pricemaxxing-api-production.up.railway.app';
+
 let browser;
 
 async function getBrowser() {
@@ -28,6 +30,22 @@ async function setupPage(page) {
     Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
     Object.defineProperty(navigator, 'languages', { get: () => ['en-IN', 'en', 'hi'] });
   });
+}
+
+async function scrapeViaRailway(url, store) {
+  try {
+    const res = await fetch(`${RAILWAY_API}/scrape`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, store }),
+      signal: AbortSignal.timeout(25000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.success ? json.data : null;
+  } catch {
+    return null;
+  }
 }
 
 // ============================================
@@ -223,8 +241,11 @@ app.post('/scrape', async (req, res) => {
   console.log(`Scraping ${store || 'unknown'}: ${url}`);
 
   try {
-    const isMyntra = store === 'myntra' || url.includes('myntra.com');
-    const result = isMyntra ? await scrapeMyntra(url) : await scrapeFlipkartViaPuppeteer(url);
+    let result = await scrapeViaRailway(url, store);
+    if (!result) {
+      const isMyntra = store === 'myntra' || url.includes('myntra.com');
+      result = isMyntra ? await scrapeMyntra(url) : await scrapeFlipkartViaPuppeteer(url);
+    }
     if (result) return res.json({ success: true, data: result });
     res.json({ success: false, error: 'Could not extract product data' });
   } catch (err) {

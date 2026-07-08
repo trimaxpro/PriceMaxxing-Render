@@ -8,5 +8,7 @@ services:
     envVars:
       - key: PORT
         value: 3000
+      - key: RAILWAY_API_URL
+        value: https://pricemaxxing-api-production.up.railway.app
     numInstances: 1
     plan: free
